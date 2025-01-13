@@ -1,13 +1,56 @@
-def calculadora(consumo: list, classe: str, bandeira: str) -> tuple:
-    """
-    retorna uma tupla de floats contendo economia anual, economia mensal, desconto aplicado e cobertura.
-    """
-    economia_anual = 0
-    economia_mensal = 0
-    desconto_aplicado = 0
-    cobertura = 0
+import requests
+from bs4 import BeautifulSoup
 
-    # Desenvolva seu código aqui #
+def obter_tarifa(classe: str, bandeira: str) -> float:
+    url = "https://www.cemig.com.br/atendimento/valores-de-tarifas-e-servicos/"
+    response = requests.get(url)
+    if response.status_code != 200:
+        raise Exception(f"Erro ao acessar a página. Código HTTP: {response.status_code}")
+    
+    soup = BeautifulSoup(response.content, "html.parser")
+    
+    if classe == "Residencial":
+        tarifa_element = soup.find("span", {"id": "tarifa_residencial"})
+    elif classe == "Comercial":
+        tarifa_element = soup.find("span", {"id": "tarifa_comercial"})
+    elif classe == "Industrial":
+        tarifa_element = soup.find("span", {"id": "tarifa_industrial"})
+    else:
+        raise ValueError("Classe inválida!")
+    
+    if tarifa_element:
+        tarifa = float(tarifa_element.text.replace(",", "."))
+    else:
+        raise ValueError("Não foi possível encontrar a tarifa no site.")
+    
+    if bandeira == "Verde":
+        tarifa *= 1.0
+    elif bandeira == "Amarela":
+        tarifa *= 1.1
+    elif bandeira == "Vermelha":
+        tarifa *= 1.2
+    else:
+        raise ValueError("Bandeira inválida!")
+
+    return tarifa
+
+def calculadora(consumo: list, classe: str, bandeira: str) -> tuple:
+    tarifa = obter_tarifa(classe, bandeira)
+    media_consumo = sum(consumo) / len(consumo)
+
+    if media_consumo < 10000:
+        descontos = {"Residencial": 0.18, "Comercial": 0.16, "Industrial": 0.12}
+        cobertura = 0.90
+    elif 10000 <= media_consumo < 20000:
+        descontos = {"Residencial": 0.22, "Comercial": 0.18, "Industrial": 0.15}
+        cobertura = 0.95
+    else:
+        descontos = {"Residencial": 0.25, "Comercial": 0.22, "Industrial": 0.18}
+        cobertura = 0.99
+
+    desconto_aplicado = descontos[classe]
+    economia_mensal = media_consumo * tarifa * desconto_aplicado * cobertura
+    economia_anual = economia_mensal * 12
 
     return (
         round(economia_anual, 2),
@@ -17,8 +60,8 @@ def calculadora(consumo: list, classe: str, bandeira: str) -> tuple:
     )
 
 
-if __name__ == "__main__":
-    print("Testando...")
+    if __name__ == "__main__":
+      print("Testando...")
 
     assert calculadora([1518, 1071, 968], "Industrial", "BANDEIRA VERMELHA 2") == (
         1349.86,
@@ -83,5 +126,4 @@ if __name__ == "__main__":
         0.99
     )
 
-    print("Todos os testes passaram!")
-    
+print("Todos os testes passaram!")
