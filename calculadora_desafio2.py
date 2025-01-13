@@ -1,3 +1,5 @@
+# Necessario instalar o pacote requests e beautifulsoup #
+
 import requests
 from bs4 import BeautifulSoup
 
